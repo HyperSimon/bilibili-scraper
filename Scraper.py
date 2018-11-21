@@ -4,14 +4,16 @@
 
 from pymongo import MongoClient
 
+import Math
 import files
 import time
+
+import requests
 
 # 数据库的连接
 client = MongoClient('localhost', 27017)
 db = client.bilibili
 bilibili_video = db.video  # collection
-import requests
 
 VIDEO_NOT_EXIST = -1
 REQUEST_ERROR = -999
@@ -51,7 +53,7 @@ def insert_2_db(videos):
 
 
 BUFFER_SIZE = 100  # 缓存大小
-REQUEST_LENGTH = 10000
+REQUEST_LENGTH = 201
 
 
 def main():
@@ -61,7 +63,7 @@ def main():
 
     video_buffer = []  # 缓存列表
     start_index = 0 + cur_index  # 每次索引起始点
-    end_ind = REQUEST_LENGTH + cur_index  # 每次索引结束点
+    end_ind = REQUEST_LENGTH + cur_index + 1  # 每次索引结束点，循环不包括最后一个值，这里手动加上
 
     for video_id in range(start_index, end_ind):
         video_info = get_video_info(video_id)
@@ -80,6 +82,9 @@ def main():
                 insert_2_db(video_buffer)
                 video_buffer = []
 
+        current_progress = video_id - start_index
+        show_current_progress(current_progress)
+
         cur_index = video_id
 
     # 最后一次不满缓存列表时，进行数据缓存。
@@ -90,7 +95,13 @@ def main():
     files.save('index.txt', str(cur_index))
     end_time = time.time()
     time_coast = end_time - start_time
-    print "%s条数据共耗时 %s s" % (REQUEST_LENGTH, str(time_coast))
+    print "%s条数据共耗时 %d s" % (REQUEST_LENGTH, time_coast)
+
+
+def show_current_progress(current_progress):
+    progress = Math.divide(current_progress, REQUEST_LENGTH, 4) * 100.0
+    p_format = format(progress, '.2f')
+    print "\r当前进度%s%%" % (p_format),
 
 
 if __name__ == "__main__":
